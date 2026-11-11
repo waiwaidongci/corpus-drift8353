@@ -1,0 +1,1 @@
+<script setup lang="ts">defineProps<{index:string;title:string;description:string}>()</script><template><header class="page-title"><div><small>YAN YU / 校样 {{index}}</small><h1>{{title}}</h1><p>{{description}}</p></div><slot/></header></template>

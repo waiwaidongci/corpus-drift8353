@@ -1,0 +1,1 @@
+import {ref,onMounted,onUnmounted} from 'vue';export function useRoute(){const page=ref(location.hash.slice(1)||'overview');const change=()=>page.value=location.hash.slice(1)||'overview';onMounted(()=>window.addEventListener('hashchange',change));onUnmounted(()=>window.removeEventListener('hashchange',change));return page}

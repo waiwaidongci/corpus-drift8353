@@ -1,0 +1,4 @@
+-- SQLAlchemy metadata creates users, corpus_snapshots, utterances,
+-- comparison_runs, drift_findings, resampling_plans, audit_logs at first boot.
+-- Natural keys: user email, snapshot name, (snapshot_id,reference),
+-- (run_id,feature). Production schema upgrades require explicit migrations.

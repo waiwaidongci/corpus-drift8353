@@ -1,0 +1,1 @@
+<script setup lang="ts">import {RUN_STATUS,PLAN_STATUS,FINDING_STATUS} from '../../constants/enums';defineProps<{status:string}>()</script><template><span :class="['badge',status]">{{RUN_STATUS[status]||PLAN_STATUS[status]||FINDING_STATUS[status]||status}}</span></template>

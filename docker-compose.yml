@@ -1,0 +1,79 @@
+name: ${COMPOSE_PROJECT_NAME:-corpus-drift}
+services:
+  db:
+    image: mysql:8.0
+    container_name: ${COMPOSE_PROJECT_NAME:-corpus-drift}-db
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-corpus}
+      MYSQL_USER: ${MYSQL_USER:-corpus}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-corpus_demo}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_corpus_demo}
+    ports: ["${DB_PORT:-17715}:3306"]
+    volumes: ["db-data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+      start_period: 20s
+  redis:
+    image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-corpus-drift}-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  backend:
+    build: ./backend
+    container_name: ${COMPOSE_PROJECT_NAME:-corpus-drift}-backend
+    environment: &backend-env
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-corpus}:${MYSQL_PASSWORD:-corpus_demo}@db:3306/${MYSQL_DATABASE:-corpus}?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-local-demo-corpus-drift-change-for-deployment}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      ARTIFACT_DIR: /artifacts
+    ports: ["${BACKEND_PORT:-19215}:8000"]
+    volumes: ["artifacts:/artifacts"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 25
+      start_period: 20s
+  worker:
+    build: ./backend
+    container_name: ${COMPOSE_PROJECT_NAME:-corpus-drift}-worker
+    command: ["celery", "-A", "src.worker.app", "worker", "--loglevel=info", "--concurrency=1", "--hostname=worker@%h"]
+    environment: *backend-env
+    volumes: ["artifacts:/artifacts"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      backend: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A src.worker.app inspect ping -d worker@$$HOSTNAME --timeout 3 | grep -q pong"]
+      interval: 10s
+      timeout: 8s
+      retries: 15
+      start_period: 20s
+  frontend:
+    build: ./frontend
+    container_name: ${COMPOSE_PROJECT_NAME:-corpus-drift}-frontend
+    ports: ["${FRONTEND_PORT:-18215}:80"]
+    depends_on:
+      backend: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+volumes:
+  db-data:
+  redis-data:
+  artifacts:

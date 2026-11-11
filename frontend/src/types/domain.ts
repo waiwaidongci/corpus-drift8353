@@ -1,0 +1,9 @@
+export interface User{id:number;email:string;name:string;role:string}
+export interface Snapshot{id:number;name:string;kind:string;filename:string;description:string;count:number}
+export interface Utterance{id:number;reference:string;features:Record<string,number|string|null>}
+export interface Binning{kind:string;labels:string[];internal_edges?:number[];categories?:string[];fitted_from:string}
+export interface Metrics{psi:number;js:number;reference_proportions:number[];candidate_proportions:number[];reference_counts:number[];candidate_counts:number[];reference_n:number;candidate_n:number;reference_missing:number;candidate_missing:number;binning:Binning;p_value:number|null;q_value:number|null;ks_statistic:number|null;fdr_reject:boolean;ks_reference_n?:number;ks_candidate_n?:number}
+export interface Finding{id:number;run_id:number;feature:string;status:string;metrics:Metrics}
+export interface Run{id:number;name:string;reference_id:number;candidate_id:number;status:string;config:{features:string[];bins:number;smoothing:number;fdr_alpha:number;slice_language:string|null;slice_device:string|null};result:{fingerprint?:string;reference_n?:number;candidate_n?:number;test_family?:{method:string;m:number;alpha:number;features:string[]}};error?:string;created_at:string}
+export interface Plan{id:number;name:string;run_id:number;finding_ids:number[];target_slice:string;sample_target:number;rationale:string;status:string;review_note:string;created_at:string}
+export interface Audit{id:number;actor:string;action:string;detail:object;created_at:string}

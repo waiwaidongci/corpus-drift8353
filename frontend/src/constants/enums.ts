@@ -1,0 +1,1 @@
+export const ROLES={admin:'语料负责人',analyst:'分布研究员',viewer:'采集观察员'};export const RUN_STATUS={queued:'待校对',running:'计算中',succeeded:'已校对',failed:'失败'};export const PLAN_STATUS={draft:'待审稿',approved:'已确认',rejected:'退回修改'};export const FINDING_STATUS={review:'建议核对',quiet:'未触及标记'};
