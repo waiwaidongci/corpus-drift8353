@@ -49,6 +49,25 @@ docker compose exec -T backend python -m scripts.seed_demo
 
 计算失败态包括空快照、空/不足5条的切片、参考连续常量/全缺失、连续有效值不足、非有限值、未知/重复特征及非法平滑/FDR/分箱参数。结果存完整冻结箱、两边计数/平滑比例、原p/q/检验族、参考/候选切片ID和输入SHA-256。指纹覆盖两边全量id/reference/全部五特征（包含null及未选特征）、配置和算法版本，按reference稳定排序；顺序改变不改指纹，任一影响字段变化会改指纹。
 
+## 离线批量校对
+
+`backend/src/batch.py` 提供不依赖 MySQL/Redis 的批量入口，逐项仍调用同一个 `services.comparison.compare_snapshots`，所以冻结参考箱、伪计数、PSI/JS、KS 与 BH 口径与页面完全一致。
+
+```sh
+# 从仓库根目录；也可 cd backend 后 python -m src.batch 或 python scripts/batch_compare.py
+python backend/scripts/batch_compare.py manifest.json --output-dir batch-results
+```
+
+清单为 JSON：`items` 每项给出 `id`、`reference`、`candidate` 与 `config`（内联对象或 JSON 文件路径）；路径相对清单目录。可用 `snapshots`/`configs` 名称别名，`defaults` 提供默认快照、配置，快照也可内联为片段数组或 `{"utterances":[...]}` 对象。
+
+```json
+{"items":[{"id":"nov-full","reference":"ref.json","candidate":"cand.json","config":"full.json"}]}
+```
+
+配置字段沿用 API：`features`、`bins`、`smoothing`、`fdr_alpha`、`slice_language`、`slice_device`；缺省为五特征、6箱、0.5、0.05、全量切片。
+
+结果目录在 `items/` 下按 item id 保存逐项记录（含完整 findings），在 `cache/` 下保存按输入哈希寻址的成功结果，并写入 `summary.json`。每项独立执行：单项读文件/校验/计算/写盘失败只记该 `failed`，其余继续，进程退出码为 1；清单本身不可用退出 2；中断退出 130。成功结果写入前校验完整性（`status=succeeded`、`complete=true`、输入/比较指纹、配置、findings 数与指标），再用临时文件 `fsync` + 原子替换，半写文件不会被当作成功。再次运行按“全量输入 + 比较配置 + 算法/结果版本”的哈希复用成功项，只重算源数据或规则变化的项；同输入跨清单项也可共享缓存。失败项不缓存，修复后直接补跑。`--force` 忽略缓存全部重算，`--quiet` 关闭 stderr 逐项进度；机器可读汇总同时打印到 stdout 并原子写入 `summary.json`。
+
 ## 工程与开发
 
 | 层 | 实现 |
